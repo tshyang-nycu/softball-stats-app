@@ -9,7 +9,7 @@
 - 自動計算 AVG、OBP、SLG、OPS
 - 顯示個人與全隊成績
 - 匯出與匯入 CSV
-- 透過 Google Apps Script 自動上傳/下載 Google Sheet 資料
+- 透過 Google Apps Script 手動上傳/下載 Google Sheet 資料
 - 支援 PWA 安裝與離線開啟
 
 ## 本機開啟
@@ -36,8 +36,24 @@ http://localhost:5173
 6. 執行身分選「我」。
 7. 存取權選「知道連結的任何人」或你的隊員所在網域。
 8. 部署後複製 Web App URL。
-9. 回到 App 的「同步」頁籤貼上 URL。
-10. 之後每次儲存打席會自動上傳，也會定時下載全隊最新資料。
+9. 把 Web App URL 寫進 `app.js` 的 `DEFAULT_SCRIPT_URL`。
+10. 本機輸入完成後，可按「上傳本次比賽資料」；想看全隊最新資料時，按「更新最新資料」。
+
+## 預先寫好同步 URL
+
+如果不想讓隊員自己貼 Google Apps Script Web App URL，可以在 `app.js` 裡把這行：
+
+```js
+const DEFAULT_SCRIPT_URL = "";
+```
+
+改成：
+
+```js
+const DEFAULT_SCRIPT_URL = "你的 Web App URL";
+```
+
+重新上傳 GitHub Pages 後，所有人打開 app 就會自動使用這個 URL。
 
 ## 指標公式
 

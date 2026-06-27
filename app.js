@@ -1,6 +1,6 @@
 const STORAGE_KEY = "softball-scorebook-records-v1";
 const SCRIPT_URL_KEY = "softball-scorebook-script-url";
-const AUTO_PULL_INTERVAL_MS = 60000;
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzck7QgwV2SBsugFHLhksvOHIXFRXoohaf9nrWDiWaB-VpzWDNwqZXv95_jpWwdulzt4A/exec";
 
 const fields = ["ab", "single", "double", "triple", "hr", "bb", "sf", "rbi", "run", "error"];
 const headers = ["id", "date", "opponent", "inning", "player", "outcome", ...fields, "note"];
@@ -29,7 +29,6 @@ const gameFilter = $("#gameFilter");
 const playerFilter = $("#playerFilter");
 const recordsList = $("#recordsList");
 const syncStatus = $("#syncStatus");
-const scriptUrlInput = $("#scriptUrl");
 const avgTrendChart = $("#avgTrendChart");
 const avgTrendEmpty = $("#avgTrendEmpty");
 const avgTrendCurrent = $("#avgTrendCurrent");
@@ -39,7 +38,6 @@ init();
 
 function init() {
   form.elements.date.valueAsDate = new Date();
-  scriptUrlInput.value = localStorage.getItem(SCRIPT_URL_KEY) || "";
 
   $$(".tab").forEach((button) => {
     button.addEventListener("click", () => switchTab(button.dataset.tab));
@@ -51,10 +49,6 @@ function init() {
   $("#importCsvInput").addEventListener("change", importCsv);
   $("#pushButton").addEventListener("click", pushToDrive);
   $("#pullButton").addEventListener("click", pullFromDrive);
-  scriptUrlInput.addEventListener("change", () => {
-    localStorage.setItem(SCRIPT_URL_KEY, scriptUrlInput.value.trim());
-    pullFromDrive({ silent: true });
-  });
   gameFilter.addEventListener("change", () => {
     renderPlayers();
     renderStats();
@@ -83,8 +77,6 @@ function init() {
   }
 
   render();
-  pullFromDrive({ silent: true });
-  window.setInterval(() => pullFromDrive({ silent: true }), AUTO_PULL_INTERVAL_MS);
 }
 
 function switchTab(tabName) {
@@ -133,7 +125,7 @@ function saveRecord(event) {
   resetForm();
   render();
   switchTab("stats");
-  autoSyncRecord(record);
+  showStatus("已儲存在本機。確認後可到「同步」頁上傳本次比賽資料。");
 }
 
 function resetForm() {
@@ -247,7 +239,7 @@ function deleteRecord(id) {
   state.records = state.records.filter((record) => record.id !== id);
   persist();
   render();
-  autoDeleteRecord(id);
+  showStatus("已刪除本機紀錄。若要更新雲端資料，請到同步頁重新上傳。");
 }
 
 function renderGameFilter() {
@@ -530,98 +522,74 @@ function importCsv(event) {
 async function pushToDrive() {
   const url = requireScriptUrl();
   if (!url) return;
-  showStatus("正在上傳到 Google Sheet...");
+  const game = getCurrentUploadGame();
+  if (!game) {
+    showStatus("目前沒有可上傳的本次比賽資料。", true);
+    return;
+  }
+
+  showStatus(`正在上傳 ${gameLabel(game)} 的 ${game.records.length} 筆紀錄...`);
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "merge", records: state.records }),
+      body: JSON.stringify({ action: "merge", records: game.records }),
     });
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "同步失敗");
     state.records = mergeRecords(result.records || [], state.records);
     persist();
     render();
-    showStatus(`已同步 ${state.records.length} 筆紀錄到 Google Drive。`);
+    showStatus(`已上傳 ${gameLabel(game)}，全隊目前共 ${state.records.length} 筆紀錄。`);
   } catch (error) {
     showStatus(`上傳失敗：${error.message}`, true);
   }
 }
 
-async function pullFromDrive(options = {}) {
-  const url = options.silent ? scriptUrlInput.value.trim() : requireScriptUrl();
+async function pullFromDrive() {
+  const url = requireScriptUrl();
   if (!url) return;
-  if (!options.silent) showStatus("正在從 Google Sheet 下載...");
+  showStatus("正在更新最新資料...");
   try {
     const response = await fetch(`${url}?action=list`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "下載失敗");
-    const beforeCount = state.records.length;
     state.records = mergeRecords(result.records || [], state.records);
     persist();
     render();
-    if (!options.silent || state.records.length !== beforeCount) {
-      showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
-    }
+    showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
   } catch (error) {
-    if (!options.silent) showStatus(`下載失敗：${error.message}`, true);
+    showStatus(`更新失敗：${error.message}`, true);
   }
 }
 
-async function autoSyncRecord(record) {
-  const url = scriptUrlInput.value.trim();
-  if (!url) {
-    showStatus("已存在本機。貼上 Google Apps Script URL 後會自動同步全隊資料。");
-    return;
+function getCurrentUploadGame() {
+  const games = getGames(state.records);
+  if (!games.length) return null;
+
+  if (gameFilter.value && gameFilter.value !== "__all__") {
+    return games.find((game) => game.key === gameFilter.value) || null;
   }
 
-  showStatus("已儲存，正在自動同步...");
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "merge", records: [record] }),
-    });
-    const result = await response.json();
-    if (!result.ok) throw new Error(result.error || "同步失敗");
-    state.records = mergeRecords(result.records || [], state.records);
-    persist();
-    render();
-    showStatus(`已自動同步，全隊目前 ${state.records.length} 筆紀錄。`);
-  } catch (error) {
-    showStatus(`已存在本機，但自動同步失敗：${error.message}`, true);
-  }
-}
-
-async function autoDeleteRecord(id) {
-  const url = scriptUrlInput.value.trim();
-  if (!url) return;
-
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "delete", id }),
-    });
-    const result = await response.json();
-    if (!result.ok) throw new Error(result.error || "刪除失敗");
-    state.records = mergeRecords(result.records || [], state.records).filter((record) => record.id !== id);
-    persist();
-    render();
-    showStatus("已刪除並同步到 Google Sheet。");
-  } catch (error) {
-    showStatus(`已刪除本機紀錄，但雲端刪除失敗：${error.message}`, true);
-  }
+  const formKey = gameKey({
+    date: form.elements.date.value,
+    opponent: clean(form.elements.opponent.value),
+  });
+  return games.find((game) => game.key === formKey) || games[games.length - 1];
 }
 
 function requireScriptUrl() {
-  const url = scriptUrlInput.value.trim();
+  const url = getConfiguredScriptUrl();
   if (!url) {
-    showStatus("請先貼上 Google Apps Script Web App URL。", true);
+    showStatus("請先在 app.js 設定 DEFAULT_SCRIPT_URL。", true);
     return "";
   }
-  localStorage.setItem(SCRIPT_URL_KEY, url);
+  if (!DEFAULT_SCRIPT_URL) localStorage.setItem(SCRIPT_URL_KEY, url);
   return url;
+}
+
+function getConfiguredScriptUrl() {
+  return DEFAULT_SCRIPT_URL || localStorage.getItem(SCRIPT_URL_KEY) || "";
 }
 
 function showStatus(message, isError = false) {

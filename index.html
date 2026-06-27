@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#176b55" />
     <title>壘球成績簿</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./style.css?v=7" />
+    <link rel="stylesheet" href="./style.css?v=10" />
   </head>
   <body>
     <div class="app-shell">
@@ -153,14 +153,10 @@
 
         <section class="view" id="syncView">
           <div class="panel">
-            <label>
-              <span>Google Apps Script Web App URL</span>
-              <input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." />
-            </label>
-            <p class="hint">設定一次後，每次儲存打席會自動上傳，也會定時從 Google Sheet 下載全隊最新紀錄。手動同步按鈕可作為備援。</p>
+            <p class="hint">本機輸入完成後，可上傳本次比賽資料；也可以隨時更新全隊最新資料。</p>
             <div class="form-actions">
-              <button class="secondary" id="pullButton" type="button">從 Drive 下載</button>
-              <button class="primary" id="pushButton" type="button">上傳到 Drive</button>
+              <button class="secondary" id="pullButton" type="button">更新最新資料</button>
+              <button class="primary" id="pushButton" type="button">上傳本次比賽資料</button>
             </div>
           </div>
           <div class="sync-status" id="syncStatus" role="status"></div>
@@ -179,6 +175,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=7" type="module"></script>
+    <script src="./app.js?v=10" type="module"></script>
   </body>
 </html>
