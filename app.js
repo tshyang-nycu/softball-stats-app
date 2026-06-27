@@ -1,6 +1,6 @@
 const STORAGE_KEY = "softball-scorebook-records-v1";
 const SCRIPT_URL_KEY = "softball-scorebook-script-url";
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmvhS8fKfd18IGrnvRVayw7j7proM1mP92sWrpzy11iUHbCFPeQXWEEq8cFMeiiwyV6Q/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTbbIrx6NoiDW0LMPOFO7zax0LUqlP2LCjw2WZTnd_rgu6VNO69TbzC_83SxwRtGpf7A/exec";
 
 const fields = ["ab", "single", "double", "triple", "hr", "bb", "sf", "rbi", "run", "error"];
 const headers = ["id", "date", "opponent", "inning", "player", "outcome", ...fields, "note"];
