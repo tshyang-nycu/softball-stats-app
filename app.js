@@ -1,5 +1,6 @@
 const STORAGE_KEY = "softball-scorebook-records-v1";
 const SCRIPT_URL_KEY = "softball-scorebook-script-url";
+const AUTO_PULL_INTERVAL_MS = 60000;
 
 const fields = ["ab", "single", "double", "triple", "hr", "bb", "sf", "rbi", "run", "error"];
 const headers = ["id", "date", "opponent", "inning", "player", "outcome", ...fields, "note"];
@@ -50,7 +51,10 @@ function init() {
   $("#importCsvInput").addEventListener("change", importCsv);
   $("#pushButton").addEventListener("click", pushToDrive);
   $("#pullButton").addEventListener("click", pullFromDrive);
-  scriptUrlInput.addEventListener("change", () => localStorage.setItem(SCRIPT_URL_KEY, scriptUrlInput.value.trim()));
+  scriptUrlInput.addEventListener("change", () => {
+    localStorage.setItem(SCRIPT_URL_KEY, scriptUrlInput.value.trim());
+    pullFromDrive({ silent: true });
+  });
   gameFilter.addEventListener("change", () => {
     renderPlayers();
     renderStats();
@@ -79,6 +83,8 @@ function init() {
   }
 
   render();
+  pullFromDrive({ silent: true });
+  window.setInterval(() => pullFromDrive({ silent: true }), AUTO_PULL_INTERVAL_MS);
 }
 
 function switchTab(tabName) {
@@ -127,6 +133,7 @@ function saveRecord(event) {
   resetForm();
   render();
   switchTab("stats");
+  autoSyncRecord(record);
 }
 
 function resetForm() {
@@ -240,6 +247,7 @@ function deleteRecord(id) {
   state.records = state.records.filter((record) => record.id !== id);
   persist();
   render();
+  autoDeleteRecord(id);
 }
 
 function renderGameFilter() {
@@ -527,30 +535,82 @@ async function pushToDrive() {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "replace", records: state.records }),
+      body: JSON.stringify({ action: "merge", records: state.records }),
     });
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "同步失敗");
+    state.records = mergeRecords(result.records || [], state.records);
+    persist();
+    render();
     showStatus(`已同步 ${state.records.length} 筆紀錄到 Google Drive。`);
   } catch (error) {
     showStatus(`上傳失敗：${error.message}`, true);
   }
 }
 
-async function pullFromDrive() {
-  const url = requireScriptUrl();
+async function pullFromDrive(options = {}) {
+  const url = options.silent ? scriptUrlInput.value.trim() : requireScriptUrl();
   if (!url) return;
-  showStatus("正在從 Google Sheet 下載...");
+  if (!options.silent) showStatus("正在從 Google Sheet 下載...");
   try {
     const response = await fetch(`${url}?action=list`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "下載失敗");
+    const beforeCount = state.records.length;
     state.records = mergeRecords(result.records || [], state.records);
     persist();
     render();
-    showStatus(`已下載並合併 ${result.records.length} 筆紀錄。`);
+    if (!options.silent || state.records.length !== beforeCount) {
+      showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
+    }
   } catch (error) {
-    showStatus(`下載失敗：${error.message}`, true);
+    if (!options.silent) showStatus(`下載失敗：${error.message}`, true);
+  }
+}
+
+async function autoSyncRecord(record) {
+  const url = scriptUrlInput.value.trim();
+  if (!url) {
+    showStatus("已存在本機。貼上 Google Apps Script URL 後會自動同步全隊資料。");
+    return;
+  }
+
+  showStatus("已儲存，正在自動同步...");
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "merge", records: [record] }),
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || "同步失敗");
+    state.records = mergeRecords(result.records || [], state.records);
+    persist();
+    render();
+    showStatus(`已自動同步，全隊目前 ${state.records.length} 筆紀錄。`);
+  } catch (error) {
+    showStatus(`已存在本機，但自動同步失敗：${error.message}`, true);
+  }
+}
+
+async function autoDeleteRecord(id) {
+  const url = scriptUrlInput.value.trim();
+  if (!url) return;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "delete", id }),
+    });
+    const result = await response.json();
+    if (!result.ok) throw new Error(result.error || "刪除失敗");
+    state.records = mergeRecords(result.records || [], state.records).filter((record) => record.id !== id);
+    persist();
+    render();
+    showStatus("已刪除並同步到 Google Sheet。");
+  } catch (error) {
+    showStatus(`已刪除本機紀錄，但雲端刪除失敗：${error.message}`, true);
   }
 }
 
