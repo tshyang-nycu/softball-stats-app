@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#176b55" />
     <title>壘球成績簿</title>
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="stylesheet" href="./style.css?v=5" />
+    <link rel="stylesheet" href="./style.css?v=6" />
   </head>
   <body>
     <div class="app-shell">
@@ -96,7 +96,11 @@
         </section>
 
         <section class="view" id="statsView">
-          <div class="panel compact">
+          <div class="panel compact stats-controls">
+            <label>
+              <span>查看場次</span>
+              <select id="gameFilter"></select>
+            </label>
             <label>
               <span>查看球員</span>
               <select id="playerFilter"></select>
@@ -175,6 +179,6 @@
       </article>
     </template>
 
-    <script src="./app.js?v=5" type="module"></script>
+    <script src="./app.js?v=6" type="module"></script>
   </body>
 </html>

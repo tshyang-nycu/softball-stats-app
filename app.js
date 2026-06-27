@@ -24,6 +24,7 @@ const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
 const form = $("#recordForm");
 const playerList = $("#playerList");
+const gameFilter = $("#gameFilter");
 const playerFilter = $("#playerFilter");
 const recordsList = $("#recordsList");
 const syncStatus = $("#syncStatus");
@@ -50,6 +51,10 @@ function init() {
   $("#pushButton").addEventListener("click", pushToDrive);
   $("#pullButton").addEventListener("click", pullFromDrive);
   scriptUrlInput.addEventListener("change", () => localStorage.setItem(SCRIPT_URL_KEY, scriptUrlInput.value.trim()));
+  gameFilter.addEventListener("change", () => {
+    renderPlayers();
+    renderStats();
+  });
   playerFilter.addEventListener("change", renderStats);
   window.addEventListener("resize", () => {
     if ($("#statsView").classList.contains("active")) renderStats();
@@ -138,6 +143,7 @@ function resetForm() {
 
 function render() {
   renderSummary();
+  renderGameFilter();
   renderPlayers();
   renderStats();
   renderRecords();
@@ -151,7 +157,7 @@ function renderSummary() {
 }
 
 function renderPlayers() {
-  const players = getPlayers();
+  const players = getPlayers(getGameFilteredRecords());
   playerList.innerHTML = players.map((player) => `<option value="${escapeHtml(player)}"></option>`).join("");
 
   const current = playerFilter.value;
@@ -163,9 +169,10 @@ function renderPlayers() {
 }
 
 function renderStats() {
-  const players = getPlayers();
+  const baseRecords = getGameFilteredRecords();
+  const players = getPlayers(baseRecords);
   const rows = players
-    .map((player) => ({ player, totals: calculateTotals(state.records.filter((record) => record.player === player)) }))
+    .map((player) => ({ player, totals: calculateTotals(baseRecords.filter((record) => record.player === player)) }))
     .sort((a, b) => b.totals.ops - a.totals.ops || b.totals.hits - a.totals.hits);
 
   $("#leaderboardBody").innerHTML = rows.length
@@ -173,9 +180,9 @@ function renderStats() {
     : `<tr><td colspan="8">還沒有成績，先輸入第一筆打席紀錄。</td></tr>`;
 
   const selected = playerFilter.value;
-  const filteredRecords = selected === "__team__" ? state.records : state.records.filter((record) => record.player === selected);
+  const filteredRecords = selected === "__team__" ? baseRecords : baseRecords.filter((record) => record.player === selected);
   const totals = calculateTotals(filteredRecords);
-  const title = selected === "__team__" ? "全隊成績" : selected || "全隊成績";
+  const title = `${selected === "__team__" ? "全隊成績" : selected || "全隊成績"}${gameFilter.value !== "__all__" ? `｜${selectedGameLabel()}` : ""}`;
   $("#selectedPlayerStats").innerHTML = `
     <h2>${escapeHtml(title)}</h2>
     <div class="metrics">
@@ -235,8 +242,29 @@ function deleteRecord(id) {
   render();
 }
 
-function getPlayers() {
-  return [...new Set(state.records.map((record) => record.player).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+function renderGameFilter() {
+  const current = gameFilter.value;
+  const games = getGames(state.records);
+  gameFilter.innerHTML = [
+    `<option value="__all__">全部場次</option>`,
+    ...games.map((game) => `<option value="${escapeHtml(game.key)}">${escapeHtml(gameLabel(game))}</option>`),
+  ].join("");
+  gameFilter.value = games.some((game) => game.key === current) ? current : "__all__";
+}
+
+function getGameFilteredRecords() {
+  const key = gameFilter.value;
+  if (!key || key === "__all__") return state.records;
+  return state.records.filter((record) => gameKey(record) === key);
+}
+
+function selectedGameLabel() {
+  const game = getGames(state.records).find((item) => item.key === gameFilter.value);
+  return game ? gameLabel(game) : "全部場次";
+}
+
+function getPlayers(records = state.records) {
+  return [...new Set(records.map((record) => record.player).filter(Boolean))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
 }
 
 function calculateTotals(records) {
@@ -280,7 +308,7 @@ function calculateTotals(records) {
 }
 
 function renderTeamSplits(selected) {
-  if (selected !== "__team__") {
+  if (selected !== "__team__" || gameFilter.value !== "__all__") {
     teamSplits.hidden = true;
     teamSplits.innerHTML = "";
     return;
@@ -442,9 +470,9 @@ function getGames(records) {
   const grouped = new Map();
   records.forEach((record) => {
     if (!record.date) return;
-    const key = `${record.date}__${record.opponent || ""}`;
+    const key = gameKey(record);
     if (!grouped.has(key)) {
-      grouped.set(key, { date: record.date, opponent: record.opponent || "", records: [] });
+      grouped.set(key, { key, date: record.date, opponent: record.opponent || "", records: [] });
     }
     grouped.get(key).records.push(record);
   });
@@ -454,6 +482,10 @@ function getGames(records) {
 
 function gameLabel(game) {
   return `${formatChartDate(game.date)}${game.opponent ? `｜vs ${game.opponent}` : ""}`;
+}
+
+function gameKey(record) {
+  return `${record.date || ""}__${record.opponent || ""}`;
 }
 
 function formatChartDate(date) {
