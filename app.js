@@ -1,6 +1,6 @@
 const STORAGE_KEY = "softball-scorebook-records-v1";
 const SCRIPT_URL_KEY = "softball-scorebook-script-url";
-const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzck7QgwV2SBsugFHLhksvOHIXFRXoohaf9nrWDiWaB-VpzWDNwqZXv95_jpWwdulzt4A/exec";
+const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwmvhS8fKfd18IGrnvRVayw7j7proM1mP92sWrpzy11iUHbCFPeQXWEEq8cFMeiiwyV6Q/exec";
 
 const fields = ["ab", "single", "double", "triple", "hr", "bb", "sf", "rbi", "run", "error"];
 const headers = ["id", "date", "opponent", "inning", "player", "outcome", ...fields, "note"];
@@ -227,7 +227,7 @@ function renderRecords() {
     const node = template.content.cloneNode(true);
     const outcomeLabel = outcomeStats[record.outcome]?.label || summarizeLegacyOutcome(record);
     node.querySelector(".record-title").textContent = `${record.player}：${outcomeLabel}`;
-    node.querySelector(".record-meta").textContent = `${record.date}${record.inning ? `｜${record.inning}局` : ""}｜vs ${record.opponent || "未填對手"}`;
+    node.querySelector(".record-meta").textContent = `${normalizeDateValue(record.date)}${record.inning ? `｜${record.inning}局` : ""}｜vs ${record.opponent || "未填對手"}`;
     node.querySelector(".record-line").textContent =
       `AB ${record.ab}｜H ${totals.hits}｜RBI ${record.rbi}｜R ${record.run}｜BB ${record.bb}`;
     node.querySelector(".delete-record").addEventListener("click", () => deleteRecord(record.id));
@@ -469,6 +469,7 @@ function getRecentGames(records) {
 function getGames(records) {
   const grouped = new Map();
   records.forEach((record) => {
+    record.date = normalizeDateValue(record.date);
     if (!record.date) return;
     const key = gameKey(record);
     if (!grouped.has(key)) {
@@ -485,12 +486,13 @@ function gameLabel(game) {
 }
 
 function gameKey(record) {
-  return `${record.date || ""}__${record.opponent || ""}`;
+  return `${normalizeDateValue(record.date)}__${record.opponent || ""}`;
 }
 
 function formatChartDate(date) {
-  const parts = String(date).split("-");
-  return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : date;
+  const normalized = normalizeDateValue(date);
+  const parts = normalized.split("-");
+  return parts.length === 3 ? `${Number(parts[1])}/${Number(parts[2])}` : normalized;
 }
 
 function exportCsv() {
@@ -628,6 +630,7 @@ function fromCsvRow(row) {
     record[header] = row[index] || "";
   });
   record.id = record.id || crypto.randomUUID();
+  record.date = normalizeDateValue(record.date);
   fields.forEach((field) => {
     record[field] = number(record[field]);
   });
@@ -693,10 +696,29 @@ function mergeRecords(primary, secondary) {
   return [...primary, ...secondary].filter((record) => {
     const id = record.id || crypto.randomUUID();
     record.id = id;
+    record.date = normalizeDateValue(record.date);
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
   });
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10);
+  }
+
+  const text = String(value).trim();
+  const isoMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2].padStart(2, "0")}-${isoMatch[3].padStart(2, "0")}`;
+
+  const slashMatch = text.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (slashMatch) return `${slashMatch[1]}-${slashMatch[2].padStart(2, "0")}-${slashMatch[3].padStart(2, "0")}`;
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return text;
 }
 
 function escapeHtml(value) {
