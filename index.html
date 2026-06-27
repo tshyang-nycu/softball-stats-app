@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#176b55" />
+    <title>壘球成績簿</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="stylesheet" href="./style.css?v=5" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Team Scorebook</p>
+          <h1>壘球成績簿</h1>
+        </div>
+        <button class="icon-button" id="installButton" type="button" title="安裝 App" hidden>＋</button>
+      </header>
+
+      <nav class="tabs" aria-label="主要功能">
+        <button class="tab active" data-tab="entry" type="button">輸入</button>
+        <button class="tab" data-tab="stats" type="button">成績</button>
+        <button class="tab" data-tab="records" type="button">紀錄</button>
+        <button class="tab" data-tab="sync" type="button">同步</button>
+      </nav>
+
+      <main>
+        <section class="view active" id="entryView">
+          <div class="score-strip">
+            <div>
+              <span>球員</span>
+              <strong id="playerCount">0</strong>
+            </div>
+            <div>
+              <span>打席</span>
+              <strong id="teamPa">0</strong>
+            </div>
+            <div>
+              <span>OPS</span>
+              <strong id="teamOps">.000</strong>
+            </div>
+          </div>
+
+          <form id="recordForm" class="panel live-entry">
+            <div class="field-row two">
+              <label>
+                <span>日期</span>
+                <input name="date" type="date" required />
+              </label>
+              <label>
+                <span>對手</span>
+                <input name="opponent" type="text" placeholder="例：河堤老鷹" />
+              </label>
+            </div>
+
+            <div class="field-row two">
+              <label>
+                <span>局數</span>
+                <input name="inning" type="number" min="1" step="1" placeholder="例：3" />
+              </label>
+              <label>
+                <span>球員</span>
+                <input name="player" type="text" list="playerList" placeholder="輸入或選擇球員" required />
+                <datalist id="playerList"></datalist>
+              </label>
+            </div>
+
+            <fieldset class="outcome-grid">
+              <legend>這次打席結果</legend>
+              <label><input type="radio" name="outcome" value="out" required /><span>出局</span></label>
+              <label><input type="radio" name="outcome" value="single" /><span>一安</span></label>
+              <label><input type="radio" name="outcome" value="double" /><span>二安</span></label>
+              <label><input type="radio" name="outcome" value="triple" /><span>三安</span></label>
+              <label><input type="radio" name="outcome" value="hr" /><span>全壘打</span></label>
+              <label><input type="radio" name="outcome" value="bb" /><span>保送</span></label>
+              <label><input type="radio" name="outcome" value="sf" /><span>犧飛</span></label>
+              <label><input type="radio" name="outcome" value="error" /><span>失誤上壘</span></label>
+            </fieldset>
+
+            <div class="field-row two">
+              <label><span>打點 RBI</span><input name="rbi" type="number" min="0" step="1" value="0" /></label>
+              <label><span>得分 R</span><input name="run" type="number" min="0" step="1" value="0" /></label>
+            </div>
+
+            <label>
+              <span>備註</span>
+              <textarea name="note" rows="3" placeholder="例：滿壘清壘、再見安打、二壘有人"></textarea>
+            </label>
+
+            <div class="form-actions">
+              <button class="secondary" id="clearFormButton" type="button">清空</button>
+              <button class="primary" type="submit">記錄這次打席</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="view" id="statsView">
+          <div class="panel compact">
+            <label>
+              <span>查看球員</span>
+              <select id="playerFilter"></select>
+            </label>
+          </div>
+          <div class="stat-hero" id="selectedPlayerStats"></div>
+          <section class="team-splits" id="teamSplits" aria-label="全隊近期成績"></section>
+          <section class="chart-panel" aria-labelledby="avgTrendTitle">
+            <div class="chart-heading">
+              <div>
+                <p class="eyebrow">Recent Form</p>
+                <h2 id="avgTrendTitle">最近五場打擊率</h2>
+              </div>
+              <strong id="avgTrendCurrent">.000</strong>
+            </div>
+            <div class="chart-frame">
+              <canvas id="avgTrendChart" width="900" height="320"></canvas>
+              <p class="empty-chart" id="avgTrendEmpty">還沒有足夠資料可以畫趨勢。</p>
+            </div>
+          </section>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>球員</th>
+                  <th>AB</th>
+                  <th>H</th>
+                  <th>RBI</th>
+                  <th>AVG</th>
+                  <th>OBP</th>
+                  <th>SLG</th>
+                  <th>OPS</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="view" id="recordsView">
+          <div class="record-toolbar">
+            <button class="secondary" id="exportCsvButton" type="button">匯出 CSV</button>
+            <label class="file-button">
+              匯入 CSV
+              <input id="importCsvInput" type="file" accept=".csv,text/csv" />
+            </label>
+          </div>
+          <div class="records-list" id="recordsList"></div>
+        </section>
+
+        <section class="view" id="syncView">
+          <div class="panel">
+            <label>
+              <span>Google Apps Script Web App URL</span>
+              <input id="scriptUrl" type="url" placeholder="https://script.google.com/macros/s/..." />
+            </label>
+            <p class="hint">設定一次後，按「上傳到 Drive」會把目前手機裡的紀錄同步到 Google Sheet。也可以從 Sheet 重新下載。</p>
+            <div class="form-actions">
+              <button class="secondary" id="pullButton" type="button">從 Drive 下載</button>
+              <button class="primary" id="pushButton" type="button">上傳到 Drive</button>
+            </div>
+          </div>
+          <div class="sync-status" id="syncStatus" role="status"></div>
+        </section>
+      </main>
+    </div>
+
+    <template id="recordTemplate">
+      <article class="record-card">
+        <div>
+          <strong class="record-title"></strong>
+          <p class="record-meta"></p>
+          <p class="record-line"></p>
+        </div>
+        <button class="icon-button danger delete-record" type="button" title="刪除">×</button>
+      </article>
+    </template>
+
+    <script src="./app.js?v=5" type="module"></script>
+  </body>
+</html>
