@@ -62,6 +62,7 @@ function init() {
   }
 
   render();
+  pullFromDrive({ silent: true });
 }
 
 function switchTab(tabName) {
@@ -533,20 +534,23 @@ async function pushToDrive() {
   }
 }
 
-async function pullFromDrive() {
+async function pullFromDrive(options = {}) {
   const url = requireScriptUrl();
   if (!url) return;
-  showStatus("正在更新最新資料...");
+  if (!options.silent) showStatus("正在更新最新資料...");
   try {
     const response = await fetch(`${url}?action=list`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "下載失敗");
+    const beforeCount = state.records.length;
     state.records = mergeRecords(result.records || [], state.records);
     persist();
     render();
-    showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
+    if (!options.silent || state.records.length !== beforeCount) {
+      showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
+    }
   } catch (error) {
-    showStatus(`更新失敗：${error.message}`, true);
+    if (!options.silent) showStatus(`更新失敗：${error.message}`, true);
   }
 }
 
