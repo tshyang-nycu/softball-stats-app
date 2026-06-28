@@ -1,15 +1,15 @@
 :root {
   color-scheme: light;
-  --bg: #f3f6f1;
-  --ink: #17211c;
-  --muted: #64716b;
-  --line: #d8e0d8;
+  --bg: #f6f2fb;
+  --ink: #211b2b;
+  --muted: #72667f;
+  --line: #ddd3e9;
   --panel: #ffffff;
-  --primary: #176b55;
-  --primary-2: #0e4f45;
-  --accent: #d88b2a;
+  --primary: #5b2ea6;
+  --primary-2: #3f1f7a;
+  --accent: #b99745;
   --danger: #b43d3d;
-  --shadow: 0 14px 34px rgba(23, 33, 28, 0.11);
+  --shadow: 0 14px 34px rgba(33, 27, 43, 0.12);
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -20,9 +20,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 22% 8%, rgba(216, 139, 42, 0.18), transparent 26rem),
-    linear-gradient(145deg, #f7f4ea 0%, var(--bg) 42%, #e8f0ed 100%);
+  background: linear-gradient(145deg, #fbf9ff 0%, var(--bg) 42%, #f3edf9 100%);
   color: var(--ink);
 }
 
@@ -48,19 +46,21 @@ textarea {
   position: relative;
 }
 
-.topbar::after {
-  content: "";
-  position: absolute;
-  right: 72px;
-  bottom: 14px;
-  width: 118px;
-  height: 78px;
-  background:
-    linear-gradient(135deg, transparent 45%, rgba(23, 107, 85, 0.35) 46% 54%, transparent 55%),
-    linear-gradient(45deg, transparent 45%, rgba(23, 107, 85, 0.28) 46% 54%, transparent 55%);
-  border: 2px solid rgba(23, 107, 85, 0.22);
-  transform: rotate(45deg);
-  opacity: 0.55;
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 3vw, 22px);
+  min-width: 0;
+}
+
+.team-logo {
+  width: clamp(74px, 18vw, 116px);
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid rgba(185, 151, 69, 0.55);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(63, 31, 122, 0.18);
 }
 
 .eyebrow {
@@ -86,7 +86,7 @@ h1 {
   margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.64);
+  background: rgba(255, 255, 255, 0.76);
   position: sticky;
   top: 8px;
   z-index: 5;
@@ -113,6 +113,7 @@ h1 {
 .tab.active {
   color: #fff;
   background: var(--primary);
+  box-shadow: inset 0 -3px 0 rgba(185, 151, 69, 0.75);
 }
 
 .view {
@@ -250,7 +251,7 @@ textarea {
 }
 
 .outcome-grid input:focus-visible + span {
-  outline: 3px solid rgba(216, 139, 42, 0.35);
+  outline: 3px solid rgba(185, 151, 69, 0.4);
   outline-offset: 2px;
 }
 
@@ -279,7 +280,7 @@ textarea {
 
 .secondary,
 .file-button {
-  background: #edf3ef;
+  background: #f1ebf8;
   color: var(--primary-2);
 }
 
@@ -519,13 +520,6 @@ th {
 
   .topbar {
     min-height: 104px;
-  }
-
-  .topbar::after {
-    width: 76px;
-    height: 52px;
-    right: 38px;
-    bottom: 18px;
   }
 
   .field-row.two,

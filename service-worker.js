@@ -1,11 +1,11 @@
-const CACHE_NAME = "softball-scorebook-v11";
+const CACHE_NAME = "softball-scorebook-v12";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=11",
-  "./app.js?v=11",
+  "./style.css?v=12",
+  "./app.js?v=12",
   "./manifest.webmanifest",
-  "./icon.svg",
+  "./logo.png",
 ];
 
 self.addEventListener("install", (event) => {

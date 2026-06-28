@@ -4,14 +4,14 @@
   "description": "記錄壘球隊個人成績、計算打擊率與同步 Google Drive。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f3f6f1",
-  "theme_color": "#176b55",
+  "background_color": "#f6f2fb",
+  "theme_color": "#5b2ea6",
   "icons": [
     {
-      "src": "./icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "./logo.png",
+      "sizes": "225x225",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

@@ -417,8 +417,8 @@ function drawAvgTrend(context, games, width, height) {
   });
 
   const gradient = context.createLinearGradient(0, padding.top, 0, height - padding.bottom);
-  gradient.addColorStop(0, "rgba(216, 139, 42, 0.28)");
-  gradient.addColorStop(1, "rgba(216, 139, 42, 0)");
+  gradient.addColorStop(0, "rgba(185, 151, 69, 0.28)");
+  gradient.addColorStop(1, "rgba(185, 151, 69, 0)");
 
   context.beginPath();
   points.forEach((point, index) => {
@@ -436,7 +436,7 @@ function drawAvgTrend(context, games, width, height) {
     if (index === 0) context.moveTo(point.x, point.y);
     else context.lineTo(point.x, point.y);
   });
-  context.strokeStyle = "#176b55";
+  context.strokeStyle = "#5b2ea6";
   context.lineWidth = 3;
   context.lineJoin = "round";
   context.lineCap = "round";
@@ -444,7 +444,7 @@ function drawAvgTrend(context, games, width, height) {
 
   points.forEach((point) => {
     context.fillStyle = "#ffffff";
-    context.strokeStyle = "#176b55";
+    context.strokeStyle = "#5b2ea6";
     context.lineWidth = 3;
     context.beginPath();
     context.arc(point.x, point.y, 5, 0, Math.PI * 2);
