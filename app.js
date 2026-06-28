@@ -17,7 +17,6 @@ const outcomeStats = {
 
 const state = {
   records: loadRecords(),
-  deferredInstallPrompt: null,
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -56,20 +55,6 @@ function init() {
   playerFilter.addEventListener("change", renderStats);
   window.addEventListener("resize", () => {
     if ($("#statsView").classList.contains("active")) renderStats();
-  });
-
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    state.deferredInstallPrompt = event;
-    $("#installButton").hidden = false;
-  });
-
-  $("#installButton").addEventListener("click", async () => {
-    if (!state.deferredInstallPrompt) return;
-    state.deferredInstallPrompt.prompt();
-    await state.deferredInstallPrompt.userChoice;
-    state.deferredInstallPrompt = null;
-    $("#installButton").hidden = true;
   });
 
   if ("serviceWorker" in navigator) {
