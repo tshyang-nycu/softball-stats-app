@@ -111,7 +111,7 @@ function saveRecord(event) {
   resetForm();
   render();
   switchTab("stats");
-  showStatus("已儲存在本機。確認後可到「同步」頁上傳本次比賽資料。");
+  showStatus("已儲存在本機。上傳前若按更新最新資料，雲端資料會覆蓋本機。");
 }
 
 function resetForm() {
@@ -537,18 +537,15 @@ async function pushToDrive() {
 async function pullFromDrive(options = {}) {
   const url = requireScriptUrl();
   if (!url) return;
-  if (!options.silent) showStatus("正在更新最新資料...");
+  if (!options.silent) showStatus("正在用雲端資料覆蓋本機...");
   try {
     const response = await fetch(`${url}?action=list`);
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "下載失敗");
-    const beforeCount = state.records.length;
-    state.records = mergeRecords(result.records || [], state.records);
+    state.records = normalizeRecords(result.records || []);
     persist();
     render();
-    if (!options.silent || state.records.length !== beforeCount) {
-      showStatus(`已更新全隊紀錄，目前共 ${state.records.length} 筆。`);
-    }
+    if (!options.silent) showStatus(`已用雲端資料覆蓋本機，目前共 ${state.records.length} 筆。`);
   } catch (error) {
     if (!options.silent) showStatus(`更新失敗：${error.message}`, true);
   }
@@ -682,13 +679,24 @@ function parseCsv(text) {
 
 function mergeRecords(primary, secondary) {
   const seen = new Set();
-  return [...primary, ...secondary].filter((record) => {
+  return normalizeRecords([...primary, ...secondary]).filter((record) => {
     const id = record.id || crypto.randomUUID();
     record.id = id;
-    record.date = normalizeDateValue(record.date);
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
+  });
+}
+
+function normalizeRecords(records) {
+  return records.map((record) => {
+    const normalized = { ...record };
+    normalized.id = normalized.id || crypto.randomUUID();
+    normalized.date = normalizeDateValue(normalized.date);
+    fields.forEach((field) => {
+      normalized[field] = number(normalized[field]);
+    });
+    return normalized;
   });
 }
 
