@@ -124,14 +124,6 @@ h1 {
   display: block;
 }
 
-.score-strip {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.score-strip div,
 .stat-hero,
 .team-split-card,
 .chart-panel,
@@ -145,21 +137,10 @@ h1 {
   box-shadow: var(--shadow);
 }
 
-.score-strip div {
-  padding: 14px;
-}
-
-.score-strip span,
 label span,
 .hint,
 .record-meta {
   color: var(--muted);
-}
-
-.score-strip strong {
-  display: block;
-  margin-top: 4px;
-  font-size: clamp(1.45rem, 5vw, 2.2rem);
 }
 
 .panel {
@@ -523,7 +504,6 @@ th {
   }
 
   .field-row.two,
-  .score-strip,
   .stats-controls,
   .team-splits,
   .metrics {

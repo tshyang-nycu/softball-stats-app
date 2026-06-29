@@ -1,4 +1,5 @@
 const STORAGE_KEY = "softball-scorebook-records-v1";
+const AUTHORED_RECORD_IDS_KEY = "softball-scorebook-authored-record-ids-v1";
 const SCRIPT_URL_KEY = "softball-scorebook-script-url";
 const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTbbIrx6NoiDW0LMPOFO7zax0LUqlP2LCjw2WZTnd_rgu6VNO69TbzC_83SxwRtGpf7A/exec";
 
@@ -17,6 +18,7 @@ const outcomeStats = {
 
 const state = {
   records: loadRecords(),
+  authoredRecordIds: loadAuthoredRecordIds(),
 };
 
 const $ = (selector) => document.querySelector(selector);
@@ -83,6 +85,18 @@ function persist() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.records));
 }
 
+function loadAuthoredRecordIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(AUTHORED_RECORD_IDS_KEY)) || []);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistAuthoredRecordIds() {
+  localStorage.setItem(AUTHORED_RECORD_IDS_KEY, JSON.stringify([...state.authoredRecordIds]));
+}
+
 function saveRecord(event) {
   event.preventDefault();
   const data = new FormData(form);
@@ -107,7 +121,9 @@ function saveRecord(event) {
   record.run = number(data.get("run"));
 
   state.records.unshift(record);
+  state.authoredRecordIds.add(record.id);
   persist();
+  persistAuthoredRecordIds();
   resetForm();
   render();
   switchTab("stats");
@@ -136,9 +152,12 @@ function render() {
 
 function renderSummary() {
   const totals = calculateTotals(state.records);
-  $("#playerCount").textContent = getPlayers().length;
-  $("#teamPa").textContent = totals.pa;
-  $("#teamOps").textContent = rate(totals.ops);
+  const playerCount = $("#playerCount");
+  const teamPa = $("#teamPa");
+  const teamOps = $("#teamOps");
+  if (playerCount) playerCount.textContent = getPlayers().length;
+  if (teamPa) teamPa.textContent = totals.pa;
+  if (teamOps) teamOps.textContent = rate(totals.ops);
 }
 
 function renderPlayers() {
@@ -202,13 +221,14 @@ function renderLeaderboardRow({ player, totals }) {
 
 function renderRecords() {
   recordsList.innerHTML = "";
-  if (!state.records.length) {
-    recordsList.innerHTML = `<div class="sync-status">目前沒有紀錄。</div>`;
+  const personalRecords = getPersonalRecords();
+  if (!personalRecords.length) {
+    recordsList.innerHTML = `<div class="sync-status">目前沒有個人輸入紀錄。</div>`;
     return;
   }
 
   const template = $("#recordTemplate");
-  state.records.forEach((record) => {
+  personalRecords.forEach((record) => {
     const totals = calculateTotals([record]);
     const node = template.content.cloneNode(true);
     const outcomeLabel = outcomeStats[record.outcome]?.label || summarizeLegacyOutcome(record);
@@ -223,9 +243,15 @@ function renderRecords() {
 
 function deleteRecord(id) {
   state.records = state.records.filter((record) => record.id !== id);
+  state.authoredRecordIds.delete(id);
   persist();
+  persistAuthoredRecordIds();
   render();
   showStatus("已刪除本機紀錄。若要更新雲端資料，請到同步頁重新上傳。");
+}
+
+function getPersonalRecords() {
+  return state.records.filter((record) => state.authoredRecordIds.has(record.id));
 }
 
 function renderGameFilter() {
@@ -552,7 +578,7 @@ async function pullFromDrive(options = {}) {
 }
 
 function getCurrentUploadGame() {
-  const games = getGames(state.records);
+  const games = getGames(getPersonalRecords());
   if (!games.length) return null;
 
   if (gameFilter.value && gameFilter.value !== "__all__") {
