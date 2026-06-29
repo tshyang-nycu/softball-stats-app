@@ -1,9 +1,9 @@
-const CACHE_NAME = "softball-scorebook-v17";
+const CACHE_NAME = "softball-scorebook-v19";
 const ASSETS = [
   "./",
   "./index.html",
-  "./style.css?v=17",
-  "./app.js?v=17",
+  "./style.css?v=19",
+  "./app.js?v=19",
   "./manifest.webmanifest",
   "./logo.png",
 ];

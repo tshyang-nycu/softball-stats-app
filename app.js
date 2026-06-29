@@ -127,7 +127,7 @@ function saveRecord(event) {
   resetForm();
   render();
   switchTab("stats");
-  showStatus("已儲存在本機。上傳前若按更新最新資料，雲端資料會覆蓋本機。");
+  showStatus("已加入本機待上傳紀錄。上傳前若按更新最新資料，待上傳紀錄會清空。");
 }
 
 function resetForm() {
@@ -223,7 +223,7 @@ function renderRecords() {
   recordsList.innerHTML = "";
   const personalRecords = getPersonalRecords();
   if (!personalRecords.length) {
-    recordsList.innerHTML = `<div class="sync-status">目前沒有個人輸入紀錄。</div>`;
+    recordsList.innerHTML = `<div class="sync-status">目前沒有本機待上傳紀錄。</div>`;
     return;
   }
 
@@ -247,7 +247,7 @@ function deleteRecord(id) {
   persist();
   persistAuthoredRecordIds();
   render();
-  showStatus("已刪除本機紀錄。若要更新雲端資料，請到同步頁重新上傳。");
+  showStatus("已刪除本機待上傳紀錄。");
 }
 
 function getPersonalRecords() {
@@ -552,9 +552,11 @@ async function pushToDrive() {
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "同步失敗");
     state.records = mergeRecords(result.records || [], state.records);
+    game.records.forEach((record) => state.authoredRecordIds.delete(record.id));
     persist();
+    persistAuthoredRecordIds();
     render();
-    showStatus(`已上傳 ${gameLabel(game)}，全隊目前共 ${state.records.length} 筆紀錄。`);
+    showStatus(`已上傳 ${gameLabel(game)}，此場本機待上傳紀錄已清空。`);
   } catch (error) {
     showStatus(`上傳失敗：${error.message}`, true);
   }
@@ -569,7 +571,9 @@ async function pullFromDrive(options = {}) {
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "下載失敗");
     state.records = normalizeRecords(result.records || []);
+    state.authoredRecordIds.clear();
     persist();
+    persistAuthoredRecordIds();
     render();
     if (!options.silent) showStatus(`已用雲端資料覆蓋本機，目前共 ${state.records.length} 筆。`);
   } catch (error) {
