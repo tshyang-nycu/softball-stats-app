@@ -124,6 +124,10 @@ h1 {
   display: block;
 }
 
+.score-strip {
+  display: none !important;
+}
+
 .stat-hero,
 .team-split-card,
 .chart-panel,
