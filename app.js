@@ -551,8 +551,9 @@ async function pushToDrive() {
     });
     const result = await response.json();
     if (!result.ok) throw new Error(result.error || "同步失敗");
+    const uploadedGameKey = game.key;
     state.records = mergeRecords(result.records || [], state.records);
-    game.records.forEach((record) => state.authoredRecordIds.delete(record.id));
+    clearPendingGame(uploadedGameKey);
     persist();
     persistAuthoredRecordIds();
     render();
@@ -594,6 +595,15 @@ function getCurrentUploadGame() {
     opponent: clean(form.elements.opponent.value),
   });
   return games.find((game) => game.key === formKey) || games[games.length - 1];
+}
+
+function clearPendingGame(uploadedGameKey) {
+  state.authoredRecordIds = new Set(
+    [...state.authoredRecordIds].filter((id) => {
+      const record = state.records.find((item) => item.id === id);
+      return record && gameKey(record) !== uploadedGameKey;
+    }),
+  );
 }
 
 function requireScriptUrl() {
